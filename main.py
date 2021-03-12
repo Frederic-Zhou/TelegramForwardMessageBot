@@ -1,5 +1,5 @@
 import logging
-import requests
+import getpass
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, message
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, CallbackContext
 from urllib.parse import quote
@@ -12,8 +12,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-MYID = 1234567
-TOKEN = "xxxx:xxxx"
+MYID = getpass.getpass("转发目标的ChatID[隐藏模式]:")
+print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
+TOKEN = getpass.getpass("输入Bot的Token[隐藏模式]:")
+print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
+
 CURRENTMESSAGE = ""
 CHATSLIST = {}
 
@@ -23,12 +26,13 @@ CHATSLIST = {}
 
 def start(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /start is issued."""
-    update.message.reply_text('Hi!')
+    update.message.reply_text(
+        'Hi! I am online, I will forward your all messages')
 
 
 def help_command(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
+    update.message.reply_text('Help!, I will forward your all messages')
 
 
 def forwardToMe(update: Update, context: CallbackContext) -> None:
@@ -41,9 +45,6 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
         global CURRENTMESSAGE
         CURRENTMESSAGE = update.message
 
-        # TODO
-        # 1 按时间戳倒叙排列
-        # 2 是否可以直接得到bot的chats
         #CHATSLIST_sorted = sorted(CHATSLIST.items(), key=lambda x: x[1])
         sorted_key = sorted(
             CHATSLIST, key=lambda x: CHATSLIST[x][1], reverse=True)
@@ -66,9 +67,9 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
         # 非本人消息，直接转发
         # 保存对话信息
         CHATSLIST[f'{update.message.chat.id}'] = ["%s" % (
-            update.message.chat.title if update.message.chat.title else "%s" % (
-                update.message.from_user.first_name if update.message.from_user.username else "",
-                update.message.from_user.last_name if update.message.from_user.username else "",
+            update.message.chat.title if update.message.chat.title else "%s %s @%s" % (
+                update.message.from_user.first_name if update.message.from_user.first_name else "",
+                update.message.from_user.last_name if update.message.from_user.last_name else "",
                 update.message.from_user.username if update.message.from_user.username else ""
             )),
             datetime.timestamp(datetime.now())]
@@ -79,11 +80,12 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
             from_chat_id=update.message.chat.id,
             message_id=update.message.message_id)
 
-        # 再发送一条来源消息
-        content = "from: [%s] %s %s @%s" % (
+        # 如果是群组，再发送一条来源消息
+        content = "%s: [%s] %s %s @%s" % (
+            update.message.chat.type,
             update.message.chat.title if update.message.chat.title else "",
-            update.message.from_user.first_name if update.message.from_user.username else "",
-            update.message.from_user.last_name if update.message.from_user.username else "",
+            update.message.from_user.first_name if update.message.from_user.first_name else "",
+            update.message.from_user.last_name if update.message.from_user.last_name else "",
             update.message.from_user.username if update.message.from_user.username else ""
         )
 
@@ -113,7 +115,12 @@ def button(update: Update, context: CallbackContext) -> None:
 def main():
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater(TOKEN)
+    # updater = None
+    try:
+        updater = Updater(TOKEN)
+    except:
+        print("bot token错误")
+        return
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
