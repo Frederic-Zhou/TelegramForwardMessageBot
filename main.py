@@ -17,6 +17,9 @@ print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
 TOKEN = getpass.getpass("输入Bot的Token[隐藏模式]:")
 print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
 
+# 转换成数字
+MYID = int(MYID)
+
 CURRENTMESSAGE = ""
 CHATSLIST = {}
 
