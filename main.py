@@ -50,6 +50,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
 
         CURRENTMESSAGE = update.message
 
+        # 如果当前ChatID不是空，说明已经选择了一个ChatID，直接发送
         if CURRENCHAT != "":
             update.message.bot.forward_message(
                 chat_id=CURRENCHAT,
@@ -58,7 +59,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
             CURRENTMESSAGE = ""
             CURRENCHAT = ""  # 发送完后重制当前会话
         else:
-            #CHATSLIST_sorted = sorted(CHATSLIST.items(), key=lambda x: x[1])
+            # 否则，回复一个询问，选择要发送的ChatID
             sorted_key = sorted(
                 CHATSLIST, key=lambda x: CHATSLIST[x][1], reverse=True)
 
@@ -75,6 +76,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
             else:
                 update.message.reply_text(
                     '没有活跃的对话')
+                CURRENTMESSAGE = ""
             pass
     else:
         # 非本人消息，直接转发
@@ -120,6 +122,7 @@ def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
 
     query.answer()
+    # 如果当前消息不为空，那么直接发送消息到选择的ChatID
     if CURRENTMESSAGE != "":
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
@@ -132,7 +135,7 @@ def button(update: Update, context: CallbackContext) -> None:
         CURRENCHAT = ""
         CURRENTMESSAGE = ""  # 发送完后，当前消息重制为空
     else:
-        # 保存当前对话
+        # 否则，记录下选择的ChatID
         query.edit_message_text(text=f"正在等待回复: {CHATSLIST[query.data][0]}")
         CURRENCHAT = query.data
 
@@ -189,10 +192,10 @@ def SaveCHATSLIST():
 if __name__ == '__main__':
 
     try:
-        MYID = getpass.getpass("转发目标的ChatID[隐藏模式]:")
+        MYID = getpass.getpass("ChatID[隐藏模式]:")
         print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
         MYID = int(MYID)
-        TOKEN = getpass.getpass("输入Bot的Token[隐藏模式]:")
+        TOKEN = getpass.getpass("Token[隐藏模式]:")
         print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
     except:
         print("输入正确的ChatID")
