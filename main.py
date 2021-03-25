@@ -5,6 +5,9 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 from telegram.utils import helpers
 from urllib.parse import quote
 from datetime import datetime
+import atexit
+import pickle
+import os
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -13,16 +16,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-MYID = getpass.getpass("转发目标的ChatID[隐藏模式]:")
-print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
-TOKEN = getpass.getpass("输入Bot的Token[隐藏模式]:")
-print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
-
-# 转换成数字
-MYID = int(MYID)
-
-CURRENTMESSAGE = ""
-CURRENCHAT = ""
+MYID = ""  # 自己的chatID
+TOKEN = ""  # 机器人的token
+CURRENTMESSAGE = ""  # 当前发出的对话对象
+CURRENCHAT = ""  # 当前收到的转发的对话ID
 CHATSLIST = {}
 
 
@@ -170,5 +167,36 @@ def main():
     updater.idle()
 
 
+def LoadCHATLIST():
+    global CHATSLIST
+    try:
+        f = open('chatlist', 'rb')
+        CHATSLIST = pickle.load(f)
+        f.close()
+    except:
+        print("load fail")
+
+
+@atexit.register
+def SaveCHATSLIST():
+    global CHATSLIST
+    f = open('chatlist', 'wb')
+    pickle.dump(CHATSLIST, f)
+    f.close()
+    print("saved")
+
+
 if __name__ == '__main__':
+
+    try:
+        MYID = getpass.getpass("转发目标的ChatID[隐藏模式]:")
+        print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
+        MYID = int(MYID)
+        TOKEN = getpass.getpass("输入Bot的Token[隐藏模式]:")
+        print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
+    except:
+        print("输入正确的ChatID")
+        os._exit(0)
+
+    LoadCHATLIST()
     main()
