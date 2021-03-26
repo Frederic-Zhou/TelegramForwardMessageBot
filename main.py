@@ -29,7 +29,7 @@ ISKEYWORDSNOTIFY = False
 def start(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /start is issued."""
     update.message.reply_text(
-        'Hi! I am online, I will forward your all messages')
+        'Hi! I am online, I will forward your all messages', disable_notification=True)
 
 
 def help_command(update: Update, context: CallbackContext) -> None:
@@ -42,7 +42,7 @@ def help_command(update: Update, context: CallbackContext) -> None:
     text += "\n清空关键字 /clearkeywords"
     text += "\n切换关键字提醒 /tagglekeywordsnotify"
 
-    update.message.reply_text(text)
+    update.message.reply_text(text, disable_notification=True)
 
 
 def addkeywords_command(update: Update, context: CallbackContext) -> None:
@@ -52,19 +52,22 @@ def addkeywords_command(update: Update, context: CallbackContext) -> None:
         kwarr = kw.split(" ")
         KEYWORDS += kwarr[1:]
 
-    update.message.reply_text("关键字:\n%s" % " ".join(KEYWORDS))
+    update.message.reply_text("关键字:\n%s" % " ".join(
+        KEYWORDS), disable_notification=True)
 
 
 def clearkeywords_command(update: Update, context: CallbackContext) -> None:
     global KEYWORDS
     KEYWORDS = []
-    update.message.reply_text("关键字:\n%s" % " ".join(KEYWORDS))
+    update.message.reply_text("关键字:\n%s" % " ".join(
+        KEYWORDS), disable_notification=True)
 
 
 def tagglekeywordsnotify_command(update: Update, context: CallbackContext) -> None:
     global ISKEYWORDSNOTIFY
     ISKEYWORDSNOTIFY = not ISKEYWORDSNOTIFY
-    update.message.reply_text("是否关键字提醒:\n%s" % ISKEYWORDSNOTIFY)
+    update.message.reply_text("是否关键字提醒:%s" %
+                              ISKEYWORDSNOTIFY, disable_notification=True)
 
 
 def forwardToMe(update: Update, context: CallbackContext) -> None:
