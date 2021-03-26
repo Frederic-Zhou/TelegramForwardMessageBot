@@ -183,6 +183,7 @@ def button(update: Update, context: CallbackContext) -> None:
         CURRENCHAT = ""
         CURRENTMESSAGE = ""  # 发送完后，当前消息重制为空
 
+        # 反馈一下，并且添加一个是否删除消息的按钮
         query.edit_message_text(text=f"发送到: {CHATSLIST[query.data][0]}",
                                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
                                      "Backout It!", callback_data="%s|%s" % (msg.chat.id, msg.message_id))]]))
