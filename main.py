@@ -100,7 +100,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
         else:
             # 否则，回复一个询问，选择要发送的ChatID
             sorted_key = sorted(
-                CHATSLIST, key=lambda x: CHATSLIST[x][1], reverse=True)
+                CHATSLIST, key=lambda x: CHATSLIST[x][1], reverse=False)
 
             if len(CHATSLIST.keys()) > 0:
                 keyboard = []
