@@ -15,16 +15,15 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
+# 定义全局变量
 MYID = ""  # 自己的chatID
 TOKEN = ""  # 机器人的token
-CURRENTMESSAGE = ""  # 当前发出的对话对象
-CURRENCHAT = ""  # 当前收到的转发的对话ID
+CURRENTMESSAGE = ""  # 当前发出的消息对象
+CURRENCHAT = ""  # 需要转发的对话ID
 CHATSLIST = {}
-
-
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
+KEYWORDS = []
+ISKEYWORDSNOTIFY = False
+# 定义全局变量结束
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -35,7 +34,37 @@ def start(update: Update, context: CallbackContext) -> None:
 
 def help_command(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!, I will forward your all messages')
+    global KEYWORDS
+    text = 'Help!, I will forward your all messages'
+    text += "\n是否根据关键字提醒?%s" % ISKEYWORDSNOTIFY
+    text += "\n关键字:\n%s" % " ".join(KEYWORDS)
+    text += "\n添加关键字 /addkeywords (用空格分割)"
+    text += "\n清空关键字 /clearkeywords"
+    text += "\n切换关键字提醒 /tagglekeywordsnotify"
+
+    update.message.reply_text(text)
+
+
+def addkeywords_command(update: Update, context: CallbackContext) -> None:
+    global KEYWORDS
+    kw = update.message.text
+    if len(kw) > 0:
+        kwarr = kw.split(" ")
+        KEYWORDS += kwarr[1:]
+
+    update.message.reply_text("关键字:\n%s" % " ".join(KEYWORDS))
+
+
+def clearkeywords_command(update: Update, context: CallbackContext) -> None:
+    global KEYWORDS
+    KEYWORDS = []
+    update.message.reply_text("关键字:\n%s" % " ".join(KEYWORDS))
+
+
+def tagglekeywordsnotify_command(update: Update, context: CallbackContext) -> None:
+    global ISKEYWORDSNOTIFY
+    ISKEYWORDSNOTIFY = not ISKEYWORDSNOTIFY
+    update.message.reply_text("是否关键字提醒:\n%s" % ISKEYWORDSNOTIFY)
 
 
 def forwardToMe(update: Update, context: CallbackContext) -> None:
@@ -43,6 +72,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
     global CHATSLIST
     global CURRENCHAT
     global CURRENTMESSAGE
+    global ISKEYWORDSNOTIFY
     # notify(update)
     print(update.message)
     # 如果是自己消息
@@ -52,10 +82,16 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
 
         # 如果当前ChatID不是空，说明已经选择了一个ChatID，直接发送
         if CURRENCHAT != "":
-            update.message.bot.forward_message(
+            msg = update.message.bot.forward_message(
                 chat_id=CURRENCHAT,
                 from_chat_id=CURRENTMESSAGE.chat.id,
                 message_id=CURRENTMESSAGE.message_id)
+
+            # 回复提示，并添加一个撤回按钮
+            update.message.reply_text(text=f"发送到: {CHATSLIST[CURRENCHAT][0]}",
+                                      disable_notification=True,
+                                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                                          "Backout It!", callback_data="%s|%s" % (msg.chat.id, msg.message_id))]]))
             CURRENTMESSAGE = ""
             CURRENCHAT = ""  # 发送完后重制当前会话
         else:
@@ -72,10 +108,10 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
                     )
 
                 update.message.reply_text(
-                    '选择一个对话/组:', reply_markup=InlineKeyboardMarkup(keyboard))
+                    '选择一个对话/组:', disable_notification=True, reply_markup=InlineKeyboardMarkup(keyboard))
             else:
                 update.message.reply_text(
-                    '没有活跃的对话')
+                    '没有活跃的对话', disable_notification=True)
                 CURRENTMESSAGE = ""
             pass
     else:
@@ -92,6 +128,8 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
         # 转发到本人账号
         update.message.bot.forward_message(
             chat_id=MYID,
+            disable_notification=ISKEYWORDSNOTIFY and
+            not containsKeyWords(update.message.text),
             from_chat_id=update.message.chat.id,
             message_id=update.message.message_id)
 
@@ -122,22 +160,47 @@ def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
 
     query.answer()
+
+    # 如果按钮值是一个数组，说明是删除消息操作
+    if (len(query.data.split("|")) > 1):
+
+        chatid = query.data.split("|")[0]
+        msgid = query.data.split("|")[1]
+        query.bot.delete_message(chatid, msgid)
+
+        query.edit_message_text(text=f"已删除消息: {CHATSLIST[chatid][0]}")
+        return
     # 如果当前消息不为空，那么直接发送消息到选择的ChatID
     if CURRENTMESSAGE != "":
 
         # CallbackQueries need to be answered, even if no notification to the user is needed
         # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
-        query.edit_message_text(text=f"发送到: {CHATSLIST[query.data][0]}")
-        query.bot.forward_message(
+
+        msg = query.bot.forward_message(
             chat_id=query.data,
             from_chat_id=CURRENTMESSAGE.chat.id,
             message_id=CURRENTMESSAGE.message_id)
         CURRENCHAT = ""
         CURRENTMESSAGE = ""  # 发送完后，当前消息重制为空
+
+        query.edit_message_text(text=f"发送到: {CHATSLIST[query.data][0]}",
+                                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                                     "Backout It!", callback_data="%s|%s" % (msg.chat.id, msg.message_id))]]))
+
     else:
         # 否则，记录下选择的ChatID
         query.edit_message_text(text=f"正在等待回复: {CHATSLIST[query.data][0]}")
         CURRENCHAT = query.data
+
+
+def containsKeyWords(str):
+    global KEYWORDS
+
+    if len(KEYWORDS) > 0:
+        for kw in KEYWORDS:
+            if (kw in str):
+                return True
+    return False
 
 
 def main():
@@ -156,6 +219,11 @@ def main():
     # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("addkeywords", addkeywords_command))
+    dispatcher.add_handler(CommandHandler(
+        "clearkeywords", clearkeywords_command))
+    dispatcher.add_handler(CommandHandler(
+        "tagglekeywordsnotify", tagglekeywordsnotify_command))
 
     dispatcher.add_handler(CallbackQueryHandler(button))
     # on noncommand i.e message - echo the message on Telegram
@@ -190,7 +258,6 @@ def SaveCHATSLIST():
 
 
 if __name__ == '__main__':
-
     try:
         MYID = getpass.getpass("ChatID[隐藏模式]:")
         print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
@@ -201,5 +268,12 @@ if __name__ == '__main__':
         print("输入正确的ChatID")
         os._exit(0)
 
-    LoadCHATLIST()
-    main()
+    try:
+        LoadCHATLIST()
+        main()
+    except KeyboardInterrupt:
+        pass
+
+
+# todo
+# 1. 撤回消息啊
