@@ -77,7 +77,7 @@ def forwardToMe(update: Update, context: CallbackContext) -> None:
     global CURRENTMESSAGE
     global ISKEYWORDSNOTIFY
     # notify(update)
-    print(update.message)
+    # print(update.message)
     # 如果是自己消息
     if update.message.chat.id == MYID:
 
@@ -263,11 +263,21 @@ def SaveCHATSLIST():
 
 if __name__ == '__main__':
     try:
-        MYID = getpass.getpass("ChatID[隐藏模式]:")
-        print("Chat ID: %s***%s" % (MYID[:2], MYID[-2:]))
-        MYID = int(MYID)
-        TOKEN = getpass.getpass("Token[隐藏模式]:")
+        os.system("clear")
+
+        myidStr = input("输入ChatID:")
+        os.system("clear")
+        MYID = int(myidStr)
+
+        TOKEN = input("输入Token:")
+        os.system("clear")
+
+        print("Chat ID: %s***%s" % (myidStr[:2], myidStr[-2:]))
         print("Token: %s***:******%s" % (TOKEN[:2], TOKEN[-2:]))
+
+        sure = input("确认请输入'yes':")
+        if sure != "yes":
+            os._exit(0)
     except:
         print("输入正确的ChatID")
         os._exit(0)
